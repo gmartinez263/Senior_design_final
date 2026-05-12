@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Product Entry</h1>
+    
+    <div class="switch-container">
+        <span id="history-label" style="font-weight: bold; color: var(--primary);">History</span>
+        <label class="switch">
+            <input type="checkbox" id="mode-toggle">
+            <span class="slider round"></span>
+        </label>
+        <span id="query-label">Query</span>
+    </div>
+
+    <form action="{{ url_for('input_data', user_id=user_id) }}" method="POST">
+        <input type="hidden" name="mode" id="mode-input" value="history">
+        
+        <div id="product-info">
+            <h2>Product Details</h2>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" placeholder="Product Name">
+                
+                <label for="brand">Brand:</label>
+                <input type="text" id="brand" name="brand" placeholder="Brand Name">
+                
+                <label for="type">Type:</label>
+                <select id="type" name="type" required>
+                    <option value="Edible">Edible</option>
+                    <option value="Tincture">Tincture</option>
+                    <option value="Capsule">Capsule</option>
+                    <option value="Flower">Flower</option>
+                    <option value="Concentrate">Concentrate</option>
+                </select>
+                
+                <label for="servings">Servings:</label>
+                <input type="number" step="0.1" id="servings" name="servings" value="1.0" required>
+                
+                <label for="notes">Notes:</label>
+                <textarea id="notes" name="notes" rows="3"></textarea>
+            </div>
+        </div>
+
+        <div>
+            <h2>Cannabinoids (mg)</h2>
+            <div class="grid">
+                {% for c in cannabinoids %}
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-size: 0.8rem;">{{ c.name }}</label>
+                        <input type="number" step="0.1" name="cannabinoid_{{ c.id }}" placeholder="0.0">
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div style="margin-top: 1rem;">
+                <button type="button" id="show-add-cannabinoid-btn" class="secondary-btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">+ Add new cannabinoid</button>
+                
+                <div id="add-cannabinoid-form" class="hidden" style="margin-top: 1rem; border: 1px solid #ddd; padding: 1rem; border-radius: 8px; background: #fdfdfd;">
+                    <label for="new_cannabinoid_name" style="display: block; margin-bottom: 0.5rem;">New Cannabinoid Name:</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="new_cannabinoid_name" placeholder="e.g., THCP">
+                        <button type="button" id="confirm-add-cannabinoid-btn">Add</button>
+                        <button type="button" id="cancel-add-cannabinoid-btn" class="secondary-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h2>Terpenes</h2>
+            <div class="grid">
+                {% for t in terpenes %}
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="terpene_{{ t.id }}" id="t_{{ t.id }}">
+                        <label for="t_{{ t.id }}">{{ t.name }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div style="margin-top: 1rem;">
+                <button type="button" id="show-add-terpene-btn" class="secondary-btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">+ Add new terpene</button>
+                
+                <div id="add-terpene-form" class="hidden" style="margin-top: 1rem; border: 1px solid #ddd; padding: 1rem; border-radius: 8px; background: #fdfdfd;">
+                    <label for="new_terpene_name" style="display: block; margin-bottom: 0.5rem;">New Terpene Name:</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="new_terpene_name" placeholder="e.g., Bisabolol">
+                        <button type="button" id="confirm-add-terpene-btn">Add</button>
+                        <button type="button" id="cancel-add-terpene-btn" class="secondary-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="effects-container" style="border-top: 2px solid var(--secondary); margin-top: 2rem; padding-top: 1rem;">
+            <div id="tags-section">
+                <h2>Product Effects (Input)</h2>
+                <div class="grid">
+                    {% for tag in tags %}
+                        <div class="checkbox-group">
+                            <input type="checkbox" name="tag_{{ tag.id }}" id="tag_{{ tag.id }}">
+                            <label for="tag_{{ tag.id }}">{{ tag.effect }}</label>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <button type="button" id="show-add-tag-btn" class="secondary-btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">+ Add new effect</button>
+                    
+                    <div id="add-tag-form" class="hidden" style="margin-top: 1rem; border: 1px solid #ddd; padding: 1rem; border-radius: 8px; background: #fdfdfd;">
+                        <label for="new_tag_name" style="display: block; margin-bottom: 0.5rem;">New Effect Name:</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="new_tag_name" placeholder="e.g., Creative">
+                            <button type="button" id="confirm-add-tag-btn">Add</button>
+                            <button type="button" id="cancel-add-tag-btn" class="secondary-btn">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="prediction-section" class="hidden">
+                <h2>Predicted Effects</h2>
+                {% if predicted_effects %}
+                    <div style="background-color: #f9f9f9; padding: 1rem; border-radius: 8px;">
+                        <ul style="list-style: none; padding: 0;">
+                            {% for res in predicted_effects %}
+                                <li style="margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                                    <span><strong>{{ res.effect }}</strong></span>
+                                    <span style="color: var(--primary);">{{ (res.probability * 100)|round(1) }}% match</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% else %}
+                    <p style="text-align: center; font-style: italic; color: #888;">Enter data and click Predict to see what effects this product might have for you.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <button type="submit" id="submit-btn" style="margin-top: 2rem; width: 100%;">Save History</button>
+    </form>
+
+    <style>
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--primary);
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+    </style>
+
+    <script>
+        const toggle = document.getElementById('mode-toggle');
+        const modeInput = document.getElementById('mode-input');
+        const tagsSection = document.getElementById('tags-section');
+        const predictionSection = document.getElementById('prediction-section');
+        const submitBtn = document.getElementById('submit-btn');
+        const historyLabel = document.getElementById('history-label');
+        const queryLabel = document.getElementById('query-label');
+
+        function updateUI(isQuery) {
+            if (isQuery) {
+                // Query Mode
+                modeInput.value = 'query';
+                tagsSection.classList.add('hidden');
+                predictionSection.classList.remove('hidden');
+                submitBtn.textContent = 'Predict Effects';
+                queryLabel.style.fontWeight = 'bold';
+                queryLabel.style.color = 'var(--primary)';
+                historyLabel.style.fontWeight = 'normal';
+                historyLabel.style.color = 'inherit';
+            } else {
+                //History Mode
+                modeInput.value = 'history';
+                tagsSection.classList.remove('hidden');
+                predictionSection.classList.add('hidden');
+                submitBtn.textContent = 'Save History';
+                historyLabel.style.fontWeight = 'bold';
+                historyLabel.style.color = 'var(--primary)';
+                queryLabel.style.fontWeight = 'normal';
+                queryLabel.style.color = 'inherit';
+            }
+        }
+
+        toggle.addEventListener('change', function() {
+            updateUI(this.checked);
+        });
+
+        //Add new tag
+        const showAddTagBtn = document.getElementById('show-add-tag-btn');
+        const addTagForm = document.getElementById('add-tag-form');
+        const cancelAddTagBtn = document.getElementById('cancel-add-tag-btn');
+        const confirmAddTagBtn = document.getElementById('confirm-add-tag-btn');
+        const newTagNameInput = document.getElementById('new_tag_name');
+
+        showAddTagBtn.addEventListener('click', () => {
+            addTagForm.classList.remove('hidden');
+            showAddTagBtn.classList.add('hidden');
+        });
+
+        cancelAddTagBtn.addEventListener('click', () => {
+            addTagForm.classList.add('hidden');
+            showAddTagBtn.classList.remove('hidden');
+            newTagNameInput.value = '';
+        });
+
+        confirmAddTagBtn.addEventListener('click', () => {
+            const tagName = newTagNameInput.value.trim();
+            if (tagName) {
+                const tempForm = document.createElement('form');
+                tempForm.method = 'POST';
+                tempForm.action = "{{ url_for('input_data', user_id=user_id) }}";
+                
+                const modeField = document.createElement('input');
+                modeField.type = 'hidden';
+                modeField.name = 'mode';
+                modeField.value = 'add_tag';
+                tempForm.appendChild(modeField);
+                
+                const nameField = document.createElement('input');
+                nameField.type = 'hidden';
+                nameField.name = 'new_tag_name';
+                nameField.value = tagName;
+                tempForm.appendChild(nameField);
+                
+                document.body.appendChild(tempForm);
+                tempForm.submit();
+            }
+        });
+
+        //Add terpene
+        const showAddTerpeneBtn = document.getElementById('show-add-terpene-btn');
+        const addTerpeneForm = document.getElementById('add-terpene-form');
+        const cancelAddTerpeneBtn = document.getElementById('cancel-add-terpene-btn');
+        const confirmAddTerpeneBtn = document.getElementById('confirm-add-terpene-btn');
+        const newTerpeneNameInput = document.getElementById('new_terpene_name');
+
+        showAddTerpeneBtn.addEventListener('click', () => {
+            addTerpeneForm.classList.remove('hidden');
+            showAddTerpeneBtn.classList.add('hidden');
+        });
+
+        cancelAddTerpeneBtn.addEventListener('click', () => {
+            addTerpeneForm.classList.add('hidden');
+            showAddTerpeneBtn.classList.remove('hidden');
+            newTerpeneNameInput.value = '';
+        });
+
+        confirmAddTerpeneBtn.addEventListener('click', () => {
+            const terpeneName = newTerpeneNameInput.value.trim();
+            if (terpeneName) {
+                const tempForm = document.createElement('form');
+                tempForm.method = 'POST';
+                tempForm.action = "{{ url_for('input_data', user_id=user_id) }}";
+                
+                const modeField = document.createElement('input');
+                modeField.type = 'hidden';
+                modeField.name = 'mode';
+                modeField.value = 'add_terpene';
+                tempForm.appendChild(modeField);
+                
+                const nameField = document.createElement('input');
+                nameField.type = 'hidden';
+                nameField.name = 'new_terpene_name';
+                nameField.value = terpeneName;
+                tempForm.appendChild(nameField);
+                
+                document.body.appendChild(tempForm);
+                tempForm.submit();
+            }
+        });
+
+        //Add cannabinoid
+        const showAddCannabinoidBtn = document.getElementById('show-add-cannabinoid-btn');
+        const addCannabinoidForm = document.getElementById('add-cannabinoid-form');
+        const cancelAddCannabinoidBtn = document.getElementById('cancel-add-cannabinoid-btn');
+        const confirmAddCannabinoidBtn = document.getElementById('confirm-add-cannabinoid-btn');
+        const newCannabinoidNameInput = document.getElementById('new_cannabinoid_name');
+
+        showAddCannabinoidBtn.addEventListener('click', () => {
+            addCannabinoidForm.classList.remove('hidden');
+            showAddCannabinoidBtn.classList.add('hidden');
+        });
+
+        cancelAddCannabinoidBtn.addEventListener('click', () => {
+            addCannabinoidForm.classList.add('hidden');
+            showAddCannabinoidBtn.classList.remove('hidden');
+            newCannabinoidNameInput.value = '';
+        });
+
+        confirmAddCannabinoidBtn.addEventListener('click', () => {
+            const cannabinoidName = newCannabinoidNameInput.value.trim();
+            if (cannabinoidName) {
+                const tempForm = document.createElement('form');
+                tempForm.method = 'POST';
+                tempForm.action = "{{ url_for('input_data', user_id=user_id) }}";
+                
+                const modeField = document.createElement('input');
+                modeField.type = 'hidden';
+                modeField.name = 'mode';
+                modeField.value = 'add_cannabinoid';
+                tempForm.appendChild(modeField);
+                
+                const nameField = document.createElement('input');
+                nameField.type = 'hidden';
+                nameField.name = 'new_cannabinoid_name';
+                nameField.value = cannabinoidName;
+                tempForm.appendChild(nameField);
+                
+                document.body.appendChild(tempForm);
+                tempForm.submit();
+            }
+        });
+
+        const hasPredictions = {% if predicted_effects %}true{% else %}false{% endif %};
+        if (hasPredictions) {
+            toggle.checked = true;
+            updateUI(true);
+        } else {
+            updateUI(false);
+        }
+    </script>
+{% endblock %}
